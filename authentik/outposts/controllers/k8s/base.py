@@ -1,6 +1,5 @@
 """Base Kubernetes Reconciler"""
 
-import os
 import re
 import ssl
 from dataclasses import asdict
@@ -44,6 +43,9 @@ class KubernetesObjectReconciler[T]:
     def __init__(self, controller: KubernetesController):
         self.controller = controller
         self.namespace = controller.outpost.config.kubernetes_namespace
+        self.kubernetes_disable_x509_strict = (
+            controller.outpost.config.kubernetes_disable_x509_strict
+        )
         self.logger = get_logger().bind(type=self.__class__.__name__)
         self.api_client = self.k8s_client()
 
@@ -234,7 +236,7 @@ class KubernetesObjectReconciler[T]:
     def k8s_client(self) -> ApiClient:
         """Get Kubernetes API client"""
         api_client = ApiClient()
-        if os.getenv("DISABLE_X509_STRICT_VERIFICATION", "false").lower() == "true":
+        if self.kubernetes_disable_x509_strict:
             self.logger.warning("Disabling strict X.509 certificate verification")
             # Relax OpenSSL TLS validation to support legacy root CA certificates
             # (e.g. from Kubernetes <= 1.16) which may not satisfy the stricter
